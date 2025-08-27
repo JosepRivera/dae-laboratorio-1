@@ -1,20 +1,10 @@
 # src/core/views.py
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import get_object_or_404
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 import json
 from .models import Item
-
-
-# Vista original (mantener)
-def item_list(request):
-    items = Item.objects.all()
-    return render(request, "core/item_list.html", {"items": items})
-
-
-# ========== API ENDPOINTS ==========
-
 
 # GET /api/items/ - Obtener todos los items
 # POST /api/items/ - Crear nuevo item

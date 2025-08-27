@@ -55,12 +55,6 @@ cd frontend
 npm install
 ```
 
-### 📍 Instalar dependencias adicionales (si no están)
-
-```bash
-npm install lucide-react axios
-```
-
 ### 📍 Iniciar servidor de desarrollo
 
 ```bash

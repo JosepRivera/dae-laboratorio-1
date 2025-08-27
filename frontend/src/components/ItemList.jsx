@@ -1,160 +1,195 @@
-import React, { useState, useEffect } from "react";
+import React, { Component } from "react";
 import { Plus } from "lucide-react";
 import { itemService } from "../services/itemService";
 import ItemCard from "./ItemCard";
 import ItemForm from "./ItemForm";
 
-const ItemList = () => {
-  const [items, setItems] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [showForm, setShowForm] = useState(false);
-  const [editingItem, setEditingItem] = useState(null);
+class ItemList extends Component {
+  constructor(props) {
+    super(props);
 
-  // Cargar items al montar el componente
-  useEffect(() => {
-    fetchItems();
-  }, []);
+    // Estado inicial
+    this.state = {
+      items: [],
+      showForm: false,
+      editingItem: null,
+      loading: true,
+    };
+  }
 
-  const fetchItems = async () => {
+  // Se ejecuta cuando el componente se monta
+  componentDidMount() {
+    this.loadItems();
+  }
+
+  // Cargar items desde la base de datos
+  loadItems = async () => {
     try {
-      setLoading(true);
-      setError("");
+      this.setState({ loading: true });
       const response = await itemService.getAll();
 
       if (response.success) {
-        setItems(response.items);
+        this.setState({ items: response.items });
       } else {
-        setError("Error al cargar los items");
+        alert("Error al cargar los items");
       }
-    } catch (err) {
-      setError("Error de conexión con el servidor");
-      console.error("Error:", err);
+    } catch (error) {
+      alert("Error de conexión con el servidor");
+      console.error("Error:", error);
     } finally {
-      setLoading(false);
+      this.setState({ loading: false });
     }
   };
 
-  const handleCreate = () => {
-    setEditingItem(null);
-    setShowForm(true);
+  // Función para crear nuevo item
+  handleCreate = () => {
+    this.setState({
+      editingItem: null,
+      showForm: true,
+    });
   };
 
-  const handleEdit = (item) => {
-    setEditingItem(item);
-    setShowForm(true);
+  // Función para editar item
+  handleEdit = (item) => {
+    this.setState({
+      editingItem: item,
+      showForm: true,
+    });
   };
 
-  const handleSave = async (formData) => {
+  // Función para guardar item (crear o editar)
+  handleSave = async (formData) => {
     try {
-      if (editingItem) {
-        // Actualizar item existente
-        const response = await itemService.update(editingItem.id, formData);
+      if (this.state.editingItem) {
+        // Editar item existente en la base de datos
+        const response = await itemService.update(
+          this.state.editingItem.id,
+          formData
+        );
+
         if (response.success) {
-          setItems(
-            items.map((item) =>
-              item.id === editingItem.id ? response.item : item
-            )
-          );
-          setShowForm(false);
-          setEditingItem(null);
+          // Actualizar en el estado local
+          this.setState({
+            items: this.state.items.map((item) =>
+              item.id === this.state.editingItem.id ? response.item : item
+            ),
+            showForm: false,
+            editingItem: null,
+          });
+        } else {
+          alert("Error al actualizar el item");
         }
       } else {
-        // Crear nuevo item
+        // Crear nuevo item en la base de datos
         const response = await itemService.create(formData);
+
         if (response.success) {
-          setItems([...items, response.item]);
-          setShowForm(false);
+          // Agregar al estado local
+          this.setState({
+            items: [...this.state.items, response.item],
+            showForm: false,
+            editingItem: null,
+          });
+        } else {
+          alert("Error al crear el item");
         }
       }
-    } catch (err) {
-      throw new Error(err.response?.data?.error || "Error al guardar");
+    } catch (error) {
+      alert("Error de conexión con el servidor");
+      console.error("Error:", error);
     }
   };
 
-  const handleDelete = async (itemId) => {
+  // Función para eliminar item
+  handleDelete = async (itemId) => {
     if (!window.confirm("¿Estás seguro de que quieres eliminar este item?")) {
       return;
     }
 
     try {
       const response = await itemService.delete(itemId);
+
       if (response.success) {
-        setItems(items.filter((item) => item.id !== itemId));
+        // Eliminar del estado local
+        this.setState({
+          items: this.state.items.filter((item) => item.id !== itemId),
+        });
+      } else {
+        alert("Error al eliminar el item");
       }
-    } catch (err) {
-      setError("Error al eliminar el item");
-      console.error("Error:", err);
+    } catch (error) {
+      alert("Error de conexión con el servidor");
+      console.error("Error:", error);
     }
   };
 
-  const handleCancel = () => {
-    setShowForm(false);
-    setEditingItem(null);
+  // Función para cancelar formulario
+  handleCancel = () => {
+    this.setState({
+      showForm: false,
+      editingItem: null,
+    });
   };
 
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center min-h-64">
-        <div className="text-xl text-gray-600">Cargando items...</div>
-      </div>
-    );
-  }
+  render() {
+    const { items, showForm, editingItem, loading } = this.state;
 
-  return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold text-gray-800">Gestión de Items</h1>
-        <div className="flex space-x-3">
+    // Mostrar loading mientras carga
+    if (loading) {
+      return (
+        <div className="flex justify-center items-center min-h-64">
+          <div className="text-xl text-gray-600">Cargando items...</div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-3xl font-bold text-gray-800">Gestión de Items</h1>
           <button
-            onClick={handleCreate}
+            onClick={this.handleCreate}
             className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
           >
             <Plus size={18} />
             <span>Nuevo Item</span>
           </button>
         </div>
-      </div>
 
-      {error && (
-        <div className="mb-6 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">
-          {error}
-        </div>
-      )}
-
-      {items.length === 0 ? (
-        <div className="text-center py-12">
-          <div className="text-gray-500 text-lg mb-4">
-            No hay items disponibles
+        {items.length === 0 ? (
+          <div className="text-center py-12">
+            <div className="text-gray-500 text-lg mb-4">
+              No hay items disponibles
+            </div>
+            <button
+              onClick={this.handleCreate}
+              className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              Crear primer item
+            </button>
           </div>
-          <button
-            onClick={handleCreate}
-            className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            Crear primer item
-          </button>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {items.map((item) => (
-            <ItemCard
-              key={item.id}
-              item={item}
-              onEdit={handleEdit}
-              onDelete={handleDelete}
-            />
-          ))}
-        </div>
-      )}
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {items.map((item) => (
+              <ItemCard
+                key={item.id}
+                item={item}
+                onEdit={this.handleEdit}
+                onDelete={this.handleDelete}
+              />
+            ))}
+          </div>
+        )}
 
-      <ItemForm
-        item={editingItem}
-        onSave={handleSave}
-        onCancel={handleCancel}
-        isOpen={showForm}
-      />
-    </div>
-  );
-};
+        <ItemForm
+          item={editingItem}
+          onSave={this.handleSave}
+          onCancel={this.handleCancel}
+          isOpen={showForm}
+        />
+      </div>
+    );
+  }
+}
 
 export default ItemList;
